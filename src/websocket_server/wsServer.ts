@@ -7,6 +7,7 @@ import {
 import {
     updateRoom,
     createRoom,
+    addUserToRoom,
 } from './controllers/roomController';
 import { CustomWebSocket, WsRooms, WsSessions } from './types/websocket';
 import { IndexId } from './types';
@@ -87,7 +88,19 @@ export class wsServer {
                     broadcast: this.#broadcast.bind(this),
                 });
             },
-            add_user_to_room: async (): Promise<void> => {},
+            add_user_to_room: async (data: string): Promise<void> => {
+                await addUserToRoom({
+                    data,
+                    database: this.database,
+                    wsClient,
+                    rooms: this.rooms,
+                });
+
+                await updateRoom({
+                    database: this.database,
+                    broadcast: this.#broadcast.bind(this),
+                });
+            },
             create_game: async (data: string): Promise<undefined> => {console.log(data);},
             start_game: async (data: string): Promise<undefined> => {console.log(data);},
             turn: async (data: string): Promise<undefined> => {console.log(data);},

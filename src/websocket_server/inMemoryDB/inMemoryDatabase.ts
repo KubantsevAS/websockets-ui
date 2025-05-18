@@ -68,7 +68,24 @@ export class InMemoryDatabase {
         });
     }
 
-    // findRoom({ index }: { index: IndexId }): Promise<Room | undefined> {
-    //     const user = this.rooms.find(room => room.roomUsers.);
-    // }
+    findRoom({ roomId }: { roomId: IndexId }): Promise<Room | undefined> {
+        return new Promise(resolve => {
+            const room = this.rooms.find(room => room.roomId === roomId);
+            resolve(room);
+        });
+    }
+
+    addUserToRoom({ room, user }: { room: Room; user: User; }): Promise<Room> {
+        return new Promise(resolve => {
+            room.roomUsers.push(user);
+            resolve(room);
+        });
+    }
+
+    deleteRoom({ roomId }: { roomId: IndexId }): Promise<void> {
+        return new Promise(resolve => {
+            this.rooms = this.rooms.filter(room => room.roomId !== roomId);
+            resolve();
+        });
+    }
 }

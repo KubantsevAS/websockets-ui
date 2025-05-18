@@ -18,45 +18,33 @@ export const registerUser = async ({
     wsClient,
     sessions,
 }: RegisterUserRequest): Promise<void> => {
-    try {
-        const parsedRequest = JSON.parse(data);
-        const user = await database.findUser(parsedRequest) || await database.createUser(parsedRequest);
+    const parsedRequest = JSON.parse(data);
+    const user = await database.findUser(parsedRequest) || await database.createUser(parsedRequest);
 
-        Object.defineProperty(wsClient, 'id', {
-            value: user.index,
-            writable: false,
-            enumerable: true,
-        });
+    Object.defineProperty(wsClient, 'id', {
+        value: user.index,
+        writable: false,
+        enumerable: true,
+    });
 
-        sessions.set(user.index, wsClient);
+    sessions.set(user.index, wsClient);
 
-        const response = JSON.stringify({
-            type: 'reg',
-            data: getRegistrationPayload(user),
-            id: 0,
-        });
+    const response = JSON.stringify({
+        type: 'reg',
+        data: getRegistrationPayload(user),
+        id: 0,
+    });
 
-        broadcastToUser(user.index, response);
-    } catch (error: unknown) {
-        if (error instanceof Error) {
-            throw new Error(`Registration failed: ${error.message}`);
-        } else {
-            throw new Error('Registration failed: Unknown error');
-        }
-    }
+    broadcastToUser(user.index, response);
 };
 
 export const updateWinners = async ({ database, broadcast }: EmptyDataRequestParams): Promise<void> => {
-    try {
-        const winners = await database.getWinners();
-        const response = JSON.stringify({
-            type: 'update_winners',
-            data: JSON.stringify(winners),
-            id: 0,
-        });
+    const winners = await database.getWinners();
+    const response = JSON.stringify({
+        type: 'update_winners',
+        data: JSON.stringify(winners),
+        id: 0,
+    });
 
-        broadcast(response);
-    } catch {
-        throw new Error('Winners update failed');
-    }
+    broadcast(response);
 };

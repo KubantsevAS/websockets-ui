@@ -7,7 +7,7 @@
     "scripts": {
         "start": "node ./index.js",
         "start:dev": "nodemon ./index.js",
-        "startWS": "node --loader ts-node/esm ./src/websocket_server/index.ts",
+        "startWS": "node --no-warnings --loader ts-node/esm ./src/websocket_server/index.ts",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "Andrei Auchynnikau",
