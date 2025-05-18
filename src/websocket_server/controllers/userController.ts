@@ -1,13 +1,14 @@
-import { WebSocket } from 'ws';
 import { getRegistrationPayload } from '../utils/getResponsePayload';
 import { InMemoryDatabase } from '../inMemoryDB/inMemoryDatabase';
 import { CustomWebSocket } from '../types/websocket';
+import { IndexId } from '../types';
 
 interface RegisterUserRequest {
     data: string;
     database: InMemoryDatabase
-    broadcast: (response: string) => void;
-    wsClient: WebSocket;
+    broadcastToUser: (userId : IndexId,response: string) => void;
+    wsClient: CustomWebSocket;
+    sessions: Map<IndexId, CustomWebSocket>;
 }
 
 interface EmptyDataRequestParams {
@@ -18,8 +19,9 @@ interface EmptyDataRequestParams {
 export const registerUser = async ({
     data,
     database,
-    broadcast,
+    broadcastToUser,
     wsClient,
+    sessions,
 }: RegisterUserRequest): Promise<void> => {
     try {
         const parsedRequest = JSON.parse(data);
@@ -31,15 +33,21 @@ export const registerUser = async ({
             enumerable: true,
         });
 
+        sessions.set(user.index, wsClient);
+
         const response = JSON.stringify({
             type: 'reg',
             data: getRegistrationPayload(user),
             id: 0,
         });
 
-        broadcast(response);
-    } catch {
-        throw new Error('Registration failed');
+        broadcastToUser(user.index, response);
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            throw new Error(`Registration failed: ${error.message}`);
+        } else {
+            throw new Error('Registration failed: Unknown error');
+        }
     }
 };
 
@@ -74,10 +82,10 @@ export const updateRoom = async ({ database, broadcast }: EmptyDataRequestParams
 };
 
 export const createRoom = async (
-    { database, wsClient }: { database: InMemoryDatabase, wsClient: WebSocket },
+    { database, wsClient }: { database: InMemoryDatabase, wsClient: CustomWebSocket },
 ): Promise<void> => {
     try {
-        const id = (wsClient as CustomWebSocket)?.id;
+        const id = wsClient.id;
 
         if (typeof id === 'undefined') {
             throw new Error('Creating room failed, current user not found');

@@ -6,32 +6,41 @@ import {
     updateRoom,
     createRoom,
 } from './controllers/userController';
+import { CustomWebSocket } from './types/websocket';
+import { IndexId } from './types';
 
 export class wsServer {
     port: number;
     server: WebSocketServer;
     database: InMemoryDatabase;
+    private sessions: Map<string, CustomWebSocket>;
 
     constructor(wsPort: number) {
         this.port = wsPort;
         this.server = new WebSocketServer({ port: this.port });
         this.database = new InMemoryDatabase();
+        this.sessions = new Map();
     }
 
     init(): void {
-        this.server.on('connection', (wsClient: WebSocket) => {
+        this.server.on('connection', (wsClient: CustomWebSocket) => {
             wsClient.on('message', async (message: string) => {
-                console.log(wsClient);
                 try {
                     this.#handleRequestMessage(message, wsClient);
                 } catch (error) {
                     console.error(error);
                 }
             });
+
+            wsClient.on('close', () => {
+                if (wsClient.id) {
+                    this.sessions.delete(wsClient.id.toString());
+                }
+            });
         });
     }
 
-    #handleRequestMessage(message: string, wsClient: WebSocket): void {
+    #handleRequestMessage(message: string, wsClient: CustomWebSocket): void {
         const request = JSON.parse(String(message));
         const { type, data } = request;
 
@@ -40,9 +49,11 @@ export class wsServer {
                 registerUser({
                     data,
                     database: this.database,
-                    broadcast: this.#broadcast.bind(this),
+                    broadcastToUser: this.#broadcastToUser.bind(this),
                     wsClient,
+                    sessions: this.sessions,
                 });
+
                 updateRoom({
                     database: this.database,
                     broadcast: this.#broadcast.bind(this),
@@ -82,5 +93,12 @@ export class wsServer {
         this.server.clients.forEach((client: WebSocket) => {
             client.send(response);
         });
+    }
+
+    #broadcastToUser(userId: IndexId, response: string): void {
+        const client = this.sessions.get(userId.toString());
+        if (client) {
+            client.send(response);
+        }
     }
 }
