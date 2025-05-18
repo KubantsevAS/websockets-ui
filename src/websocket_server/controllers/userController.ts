@@ -7,6 +7,11 @@ interface RegisterUserParams {
     broadcast: (response: string) => void;
 }
 
+interface UpdateWinnersParams {
+    database: InMemoryDatabase
+    broadcast: (response: string) => void;
+}
+
 export const registerUser = async ({ data, database, broadcast }: RegisterUserParams): Promise<void> => {
     try {
         const parsedRequest = JSON.parse(data);
@@ -25,5 +30,20 @@ export const registerUser = async ({ data, database, broadcast }: RegisterUserPa
         broadcast(response);
     } catch {
         throw new Error('Registration failed');
+    }
+};
+
+export const updateWinners = async ({ database, broadcast }: UpdateWinnersParams): Promise<void> => {
+    try {
+        const winners = await database.getWinners();
+        const response = JSON.stringify({
+            type: 'update_winners',
+            data: JSON.stringify(winners),
+            id: 0,
+        });
+
+        broadcast(response);
+    } catch {
+        throw new Error('Winners update failed');
     }
 };

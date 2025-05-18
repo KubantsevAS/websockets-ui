@@ -1,4 +1,4 @@
-import { User } from '../types';
+import { User, Winners } from '../types';
 import crypto from 'crypto';
 
 interface UserParams {
@@ -7,7 +7,8 @@ interface UserParams {
 }
 
 export class InMemoryDatabase {
-    private usersMap: User[] = [];
+    private users: User[] = [];
+    private winners: Winners[] = [];
 
     createUser({ name, password }: UserParams): Promise<User> {
         return new Promise(resolve => {
@@ -17,21 +18,28 @@ export class InMemoryDatabase {
                 password,
                 index: userId,
             };
-            this.usersMap.push(user);
+            this.users.push(user);
+            this.winners.push({ name, wins: 0 });
             resolve(user);
         });
     }
 
     getAllUsers(): Promise<User[]> {
         return new Promise(resolve => {
-            resolve(this.usersMap);
+            resolve(this.users);
         });
     }
 
     findUser({ name }: UserParams): Promise<User | undefined> {
         return new Promise(resolve => {
-            const user = this.usersMap.find(user => user.name === name);
+            const user = this.users.find(user => user.name === name);
             resolve(user);
+        });
+    }
+
+    getWinners(): Promise<Winners[]> {
+        return new Promise(resolve => {
+            resolve(this.winners);
         });
     }
 }

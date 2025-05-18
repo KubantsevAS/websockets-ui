@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { InMemoryDatabase } from './inMemoryDB/inMemoryDatabase';
-import { registerUser } from './controllers/userController';
+import { registerUser, updateWinners } from './controllers/userController';
 
 export class wsServer {
     port: number;
@@ -30,18 +30,23 @@ export class wsServer {
         const { type, data } = request;
 
         const requestTypeMap = {
-            reg: (data: string): Promise<void> => registerUser({
-                data,
-                database: this.database,
-                broadcast: this.broadcast.bind(this),
-            }),
+            reg: (data: string): void => {
+                registerUser({
+                    data,
+                    database: this.database,
+                    broadcast: this.broadcast.bind(this),
+                });
+                updateWinners({
+                    database: this.database,
+                    broadcast: this.broadcast.bind(this),
+                });
+            },
             create_game: (data: string): undefined => {console.log(data);},
             start_game: (data: string): undefined => {console.log(data);},
             turn: (data: string): undefined => {console.log(data);},
             attack: (data: string): undefined => {console.log(data);},
             finish: (data: string): undefined => {console.log(data);},
             update_room: (data: string): undefined => {console.log(data);},
-            update_winners: (data: string): undefined => {console.log(data);},
         };
 
         if (!Object.prototype.hasOwnProperty.call(requestTypeMap, type)) {
