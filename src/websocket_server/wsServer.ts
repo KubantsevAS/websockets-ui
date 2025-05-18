@@ -1,6 +1,11 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { InMemoryDatabase } from './inMemoryDB/inMemoryDatabase';
-import { registerUser, updateWinners } from './controllers/userController';
+import {
+    registerUser,
+    updateWinners,
+    updateRoom,
+    createRoom,
+} from './controllers/userController';
 
 export class wsServer {
     port: number;
@@ -14,10 +19,11 @@ export class wsServer {
     }
 
     init(): void {
-        this.server.on('connection', wsClient => {
+        this.server.on('connection', (wsClient: WebSocket) => {
             wsClient.on('message', async (message: string) => {
+                console.log(wsClient);
                 try {
-                    this.#handleRequestMessage(message);
+                    this.#handleRequestMessage(message, wsClient);
                 } catch (error) {
                     console.error(error);
                 }
@@ -25,7 +31,7 @@ export class wsServer {
         });
     }
 
-    #handleRequestMessage(message: string): void {
+    #handleRequestMessage(message: string, wsClient: WebSocket): void {
         const request = JSON.parse(String(message));
         const { type, data } = request;
 
@@ -34,13 +40,29 @@ export class wsServer {
                 registerUser({
                     data,
                     database: this.database,
-                    broadcast: this.broadcast.bind(this),
+                    broadcast: this.#broadcast.bind(this),
+                    wsClient,
+                });
+                updateRoom({
+                    database: this.database,
+                    broadcast: this.#broadcast.bind(this),
                 });
                 updateWinners({
                     database: this.database,
-                    broadcast: this.broadcast.bind(this),
+                    broadcast: this.#broadcast.bind(this),
                 });
             },
+            create_room: (): void => {
+                createRoom({
+                    database: this.database,
+                    wsClient,
+                });
+                updateRoom({
+                    database: this.database,
+                    broadcast: this.#broadcast.bind(this),
+                });
+            },
+            add_user_to_room: (): void => {},
             create_game: (data: string): undefined => {console.log(data);},
             start_game: (data: string): undefined => {console.log(data);},
             turn: (data: string): undefined => {console.log(data);},
@@ -56,7 +78,7 @@ export class wsServer {
         (requestTypeMap as Record<string, (data: string) => void>)[type](data);
     }
 
-    broadcast(response: string): void {
+    #broadcast(response: string): void {
         this.server.clients.forEach((client: WebSocket) => {
             client.send(response);
         });

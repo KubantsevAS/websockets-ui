@@ -1,4 +1,9 @@
-import { User, Winners } from '../types';
+import {
+    IndexId,
+    Room,
+    User,
+    Winner,
+} from '../types';
 import crypto from 'crypto';
 
 interface UserParams {
@@ -8,7 +13,8 @@ interface UserParams {
 
 export class InMemoryDatabase {
     private users: User[] = [];
-    private winners: Winners[] = [];
+    private winners: Winner[] = [];
+    private rooms: Room[] = [];
 
     createUser({ name, password }: UserParams): Promise<User> {
         return new Promise(resolve => {
@@ -30,16 +36,36 @@ export class InMemoryDatabase {
         });
     }
 
-    findUser({ name }: UserParams): Promise<User | undefined> {
+    findUser({ index }: { index: IndexId }): Promise<User | undefined> {
         return new Promise(resolve => {
-            const user = this.users.find(user => user.name === name);
+            const user = this.users.find(user => user.index === index);
             resolve(user);
         });
     }
 
-    getWinners(): Promise<Winners[]> {
+    getWinners(): Promise<Winner[]> {
         return new Promise(resolve => {
             resolve(this.winners);
+        });
+    }
+
+    getRooms(): Promise<Room[]> {
+        return new Promise(resolve => {
+            resolve(this.rooms);
+        });
+    }
+
+    createRoom(user: User): Promise<void> {
+        return new Promise(resolve => {
+            const roomId = crypto.randomUUID();
+            const roomUsers = [{
+                name: user.name,
+                index: user.index,
+            }];
+
+            this.rooms.push({ roomId, roomUsers });
+
+            resolve();
         });
     }
 }

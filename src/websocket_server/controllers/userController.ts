@@ -1,29 +1,39 @@
+import { WebSocket } from 'ws';
 import { getRegistrationPayload } from '../utils/getResponsePayload';
 import { InMemoryDatabase } from '../inMemoryDB/inMemoryDatabase';
+import { CustomWebSocket } from '../types/websocket';
 
-interface RegisterUserParams {
+interface RegisterUserRequest {
     data: string;
     database: InMemoryDatabase
     broadcast: (response: string) => void;
+    wsClient: WebSocket;
 }
 
-interface UpdateWinnersParams {
+interface EmptyDataRequestParams {
     database: InMemoryDatabase
     broadcast: (response: string) => void;
 }
 
-export const registerUser = async ({ data, database, broadcast }: RegisterUserParams): Promise<void> => {
+export const registerUser = async ({
+    data,
+    database,
+    broadcast,
+    wsClient,
+}: RegisterUserRequest): Promise<void> => {
     try {
         const parsedRequest = JSON.parse(data);
-        const user = await database.findUser(parsedRequest);
+        const user = await database.findUser(parsedRequest) || await database.createUser(parsedRequest);
 
-        const payload = !user
-            ? getRegistrationPayload(await database.createUser(parsedRequest))
-            : getRegistrationPayload(user);
+        Object.defineProperty(wsClient, 'id', {
+            value: user.index,
+            writable: false,
+            enumerable: true,
+        });
 
         const response = JSON.stringify({
             type: 'reg',
-            data: payload,
+            data: getRegistrationPayload(user),
             id: 0,
         });
 
@@ -33,7 +43,7 @@ export const registerUser = async ({ data, database, broadcast }: RegisterUserPa
     }
 };
 
-export const updateWinners = async ({ database, broadcast }: UpdateWinnersParams): Promise<void> => {
+export const updateWinners = async ({ database, broadcast }: EmptyDataRequestParams): Promise<void> => {
     try {
         const winners = await database.getWinners();
         const response = JSON.stringify({
@@ -45,5 +55,42 @@ export const updateWinners = async ({ database, broadcast }: UpdateWinnersParams
         broadcast(response);
     } catch {
         throw new Error('Winners update failed');
+    }
+};
+
+export const updateRoom = async ({ database, broadcast }: EmptyDataRequestParams): Promise<void> => {
+    try {
+        const rooms = await database.getRooms();
+        const response = JSON.stringify({
+            type: 'update_room',
+            data: JSON.stringify(rooms),
+            id: 0,
+        });
+
+        broadcast(response);
+    } catch {
+        throw new Error('Rooms update failed');
+    }
+};
+
+export const createRoom = async (
+    { database, wsClient }: { database: InMemoryDatabase, wsClient: WebSocket },
+): Promise<void> => {
+    try {
+        const id = (wsClient as CustomWebSocket)?.id;
+
+        if (typeof id === 'undefined') {
+            throw new Error('Creating room failed, current user not found');
+        }
+
+        const user = await database.findUser({ index: id });
+
+        if (!user) {
+            throw new Error('Creating room failed, current user not found');
+        }
+
+        await database.createRoom(user);
+    } catch {
+        throw new Error('Creating room failed');
     }
 };
