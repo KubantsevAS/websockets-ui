@@ -37,6 +37,13 @@ export class wsServer {
                     this.sessions.delete(wsClient.id.toString());
                 }
             });
+
+            wsClient.on('error', (error) => {
+                console.error('WebSocket error:', error);
+                if (wsClient.id) {
+                    this.sessions.delete(wsClient.id.toString());
+                }
+            });
         });
     }
 
@@ -91,14 +98,29 @@ export class wsServer {
 
     #broadcast(response: string): void {
         this.server.clients.forEach((client: WebSocket) => {
-            client.send(response);
+            if (this.#isConnectionOpen(client)) {
+                try {
+                    client.send(response);
+                } catch (error) {
+                    console.error('Error broadcasting to client:', error);
+                }
+            }
         });
     }
 
     #broadcastToUser(userId: IndexId, response: string): void {
         const client = this.sessions.get(userId.toString());
-        if (client) {
-            client.send(response);
+        if (client && this.#isConnectionOpen(client)) {
+            try {
+                client.send(response);
+            } catch (error) {
+                console.error('Error sending message to user:', error);
+                this.sessions.delete(userId.toString());
+            }
         }
+    }
+
+    #isConnectionOpen(client: WebSocket): boolean {
+        return client.readyState === WebSocket.OPEN;
     }
 }
