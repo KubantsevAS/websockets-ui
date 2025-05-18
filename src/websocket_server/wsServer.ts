@@ -1,0 +1,59 @@
+import { WebSocketServer, WebSocket } from 'ws';
+import { InMemoryDatabase } from './inMemoryDB/inMemoryDatabase';
+import { registerUser } from './controllers/userController';
+
+export class wsServer {
+    port: number;
+    server: WebSocketServer;
+    database: InMemoryDatabase;
+
+    constructor(wsPort: number) {
+        this.port = wsPort;
+        this.server = new WebSocketServer({ port: this.port });
+        this.database = new InMemoryDatabase();
+    }
+
+    init(): void {
+        this.server.on('connection', wsClient => {
+            wsClient.on('message', async (message: string) => {
+                try {
+                    this.#handleRequestMessage(message);
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+        });
+    }
+
+    #handleRequestMessage(message: string): void {
+        const request = JSON.parse(String(message));
+        const { type, data } = request;
+
+        const requestTypeMap = {
+            reg: (data: string): Promise<void> => registerUser({
+                data,
+                database: this.database,
+                broadcast: this.broadcast.bind(this),
+            }),
+            create_game: (data: string): undefined => {console.log(data);},
+            start_game: (data: string): undefined => {console.log(data);},
+            turn: (data: string): undefined => {console.log(data);},
+            attack: (data: string): undefined => {console.log(data);},
+            finish: (data: string): undefined => {console.log(data);},
+            update_room: (data: string): undefined => {console.log(data);},
+            update_winners: (data: string): undefined => {console.log(data);},
+        };
+
+        if (!Object.prototype.hasOwnProperty.call(requestTypeMap, type)) {
+            throw new Error('Unknown request type');
+        }
+
+        (requestTypeMap as Record<string, (data: string) => void>)[type](data);
+    }
+
+    broadcast(response: string): void {
+        this.server.clients.forEach((client: WebSocket) => {
+            client.send(response);
+        });
+    }
+}
