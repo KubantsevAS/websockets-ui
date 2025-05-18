@@ -55,17 +55,20 @@ export class InMemoryDatabase {
         });
     }
 
-    createRoom(user: User): Promise<void> {
+    createRoom(user: User): Promise<Room> {
         return new Promise(resolve => {
             const roomId = crypto.randomUUID();
             const roomUsers = [{
                 name: user.name,
                 index: user.index,
             }];
-
-            this.rooms.push({ roomId, roomUsers });
-
-            resolve();
+            const room = { roomId, roomUsers };
+            this.rooms.push(room);
+            resolve(room);
         });
     }
+
+    // findRoom({ index }: { index: IndexId }): Promise<Room | undefined> {
+    //     const user = this.rooms.find(room => room.roomUsers.);
+    // }
 }

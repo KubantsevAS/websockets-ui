@@ -1,19 +1,14 @@
 import { getRegistrationPayload } from '../utils/getResponsePayload';
 import { InMemoryDatabase } from '../inMemoryDB/inMemoryDatabase';
-import { CustomWebSocket } from '../types/websocket';
-import { IndexId } from '../types';
+import { CustomWebSocket, WsSessions } from '../types/websocket';
+import { EmptyDataRequestParams, IndexId } from '../types';
 
 interface RegisterUserRequest {
     data: string;
     database: InMemoryDatabase
     broadcastToUser: (userId : IndexId,response: string) => void;
     wsClient: CustomWebSocket;
-    sessions: Map<IndexId, CustomWebSocket>;
-}
-
-interface EmptyDataRequestParams {
-    database: InMemoryDatabase
-    broadcast: (response: string) => void;
+    sessions: WsSessions;
 }
 
 export const registerUser = async ({
@@ -63,42 +58,5 @@ export const updateWinners = async ({ database, broadcast }: EmptyDataRequestPar
         broadcast(response);
     } catch {
         throw new Error('Winners update failed');
-    }
-};
-
-export const updateRoom = async ({ database, broadcast }: EmptyDataRequestParams): Promise<void> => {
-    try {
-        const rooms = await database.getRooms();
-        const response = JSON.stringify({
-            type: 'update_room',
-            data: JSON.stringify(rooms),
-            id: 0,
-        });
-
-        broadcast(response);
-    } catch {
-        throw new Error('Rooms update failed');
-    }
-};
-
-export const createRoom = async (
-    { database, wsClient }: { database: InMemoryDatabase, wsClient: CustomWebSocket },
-): Promise<void> => {
-    try {
-        const id = wsClient.id;
-
-        if (typeof id === 'undefined') {
-            throw new Error('Creating room failed, current user not found');
-        }
-
-        const user = await database.findUser({ index: id });
-
-        if (!user) {
-            throw new Error('Creating room failed, current user not found');
-        }
-
-        await database.createRoom(user);
-    } catch {
-        throw new Error('Creating room failed');
     }
 };

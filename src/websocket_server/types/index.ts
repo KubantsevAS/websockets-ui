@@ -1,4 +1,11 @@
+import { InMemoryDatabase } from '../inMemoryDB/inMemoryDatabase';
+
 export type IndexId = number | string;
+
+export interface EmptyDataRequestParams {
+    database: InMemoryDatabase
+    broadcast: (response: string) => void;
+}
 
 export interface User {
     name: string;

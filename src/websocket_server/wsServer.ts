@@ -3,32 +3,36 @@ import { InMemoryDatabase } from './inMemoryDB/inMemoryDatabase';
 import {
     registerUser,
     updateWinners,
+} from './controllers/userController';
+import {
     updateRoom,
     createRoom,
-} from './controllers/userController';
-import { CustomWebSocket } from './types/websocket';
+} from './controllers/roomController';
+import { CustomWebSocket, WsRooms, WsSessions } from './types/websocket';
 import { IndexId } from './types';
 
 export class wsServer {
     port: number;
     server: WebSocketServer;
     database: InMemoryDatabase;
-    private sessions: Map<string, CustomWebSocket>;
+    private sessions: WsSessions;
+    private rooms: WsRooms;
 
     constructor(wsPort: number) {
         this.port = wsPort;
         this.server = new WebSocketServer({ port: this.port });
         this.database = new InMemoryDatabase();
         this.sessions = new Map();
+        this.rooms = new Map;
     }
 
     init(): void {
         this.server.on('connection', (wsClient: CustomWebSocket) => {
             wsClient.on('message', async (message: string) => {
                 try {
-                    this.#handleRequestMessage(message, wsClient);
+                    await this.#handleRequestMessage(message, wsClient);
                 } catch (error) {
-                    console.error(error);
+                    console.error('Error handling message:', error);
                 }
             });
 
@@ -47,13 +51,13 @@ export class wsServer {
         });
     }
 
-    #handleRequestMessage(message: string, wsClient: CustomWebSocket): void {
+    async #handleRequestMessage(message: string, wsClient: CustomWebSocket): Promise<void> {
         const request = JSON.parse(String(message));
         const { type, data } = request;
 
         const requestTypeMap = {
-            reg: (data: string): void => {
-                registerUser({
+            reg: async (data: string): Promise<void> => {
+                await registerUser({
                     data,
                     database: this.database,
                     broadcastToUser: this.#broadcastToUser.bind(this),
@@ -61,39 +65,42 @@ export class wsServer {
                     sessions: this.sessions,
                 });
 
-                updateRoom({
+                await updateRoom({
                     database: this.database,
                     broadcast: this.#broadcast.bind(this),
                 });
-                updateWinners({
+
+                await updateWinners({
                     database: this.database,
                     broadcast: this.#broadcast.bind(this),
                 });
             },
-            create_room: (): void => {
-                createRoom({
+            create_room: async (): Promise<void> => {
+                await createRoom({
                     database: this.database,
                     wsClient,
+                    rooms: this.rooms,
                 });
-                updateRoom({
+
+                await updateRoom({
                     database: this.database,
                     broadcast: this.#broadcast.bind(this),
                 });
             },
-            add_user_to_room: (): void => {},
-            create_game: (data: string): undefined => {console.log(data);},
-            start_game: (data: string): undefined => {console.log(data);},
-            turn: (data: string): undefined => {console.log(data);},
-            attack: (data: string): undefined => {console.log(data);},
-            finish: (data: string): undefined => {console.log(data);},
-            update_room: (data: string): undefined => {console.log(data);},
+            add_user_to_room: async (): Promise<void> => {},
+            create_game: async (data: string): Promise<undefined> => {console.log(data);},
+            start_game: async (data: string): Promise<undefined> => {console.log(data);},
+            turn: async (data: string): Promise<undefined> => {console.log(data);},
+            attack: async (data: string): Promise<undefined> => {console.log(data);},
+            finish: async (data: string): Promise<undefined> => {console.log(data);},
+            update_room: async (data: string): Promise<undefined> => {console.log(data);},
         };
 
         if (!Object.prototype.hasOwnProperty.call(requestTypeMap, type)) {
             throw new Error('Unknown request type');
         }
 
-        (requestTypeMap as Record<string, (data: string) => void>)[type](data);
+        await (requestTypeMap as Record<string, (data: string) => Promise<void>>)[type](data);
     }
 
     #broadcast(response: string): void {
