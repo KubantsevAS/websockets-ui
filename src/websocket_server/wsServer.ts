@@ -108,6 +108,7 @@ export class wsServer {
                     broadcastToUser: this.#broadcastToUser.bind(this),
                 });
             },
+            // TODO
             start_game: async (data: string): Promise<undefined> => {console.log(data);},
             turn: async (data: string): Promise<undefined> => {console.log(data);},
             attack: async (data: string): Promise<undefined> => {console.log(data);},
