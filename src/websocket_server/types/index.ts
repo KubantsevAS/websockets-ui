@@ -27,3 +27,8 @@ interface RoomUser {
     name: string;
     index: IndexId;
 }
+
+export interface Game {
+    idGame: IndexId;
+    idPlayer: IndexId;
+}

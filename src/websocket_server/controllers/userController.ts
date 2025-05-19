@@ -6,7 +6,7 @@ import { EmptyDataRequestParams, IndexId } from '../types';
 interface RegisterUserRequest {
     data: string;
     database: InMemoryDatabase
-    broadcastToUser: (userId : IndexId,response: string) => void;
+    broadcastToUser: (userId : IndexId, response: string) => void;
     wsClient: CustomWebSocket;
     sessions: WsSessions;
 }

@@ -1,4 +1,5 @@
 import {
+    Game,
     IndexId,
     Room,
     User,
@@ -15,6 +16,7 @@ export class InMemoryDatabase {
     private users: User[] = [];
     private winners: Winner[] = [];
     private rooms: Room[] = [];
+    private games: Game[] = [];
 
     createUser({ name, password }: UserParams): Promise<User> {
         return new Promise(resolve => {
@@ -86,6 +88,13 @@ export class InMemoryDatabase {
         return new Promise(resolve => {
             this.rooms = this.rooms.filter(room => room.roomId !== roomId);
             resolve();
+        });
+    }
+
+    createGame(game: Game): Promise<Game> {
+        return new Promise(resolve => {
+            this.games.push(game);
+            resolve(game);
         });
     }
 }

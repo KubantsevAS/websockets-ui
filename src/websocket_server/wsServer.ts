@@ -9,6 +9,7 @@ import {
     createRoom,
     addUserToRoom,
 } from './controllers/roomController';
+import { createGame } from './controllers/gameController';
 import { CustomWebSocket, WsRooms, WsSessions } from './types/websocket';
 import { IndexId } from './types';
 
@@ -100,8 +101,13 @@ export class wsServer {
                     database: this.database,
                     broadcast: this.#broadcast.bind(this),
                 });
+
+                await createGame({
+                    data,
+                    database: this.database,
+                    broadcastToUser: this.#broadcastToUser.bind(this),
+                });
             },
-            create_game: async (data: string): Promise<undefined> => {console.log(data);},
             start_game: async (data: string): Promise<undefined> => {console.log(data);},
             turn: async (data: string): Promise<undefined> => {console.log(data);},
             attack: async (data: string): Promise<undefined> => {console.log(data);},

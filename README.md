@@ -39,7 +39,7 @@ Command | Description
 `npm run start` | App served @ `http://localhost:8181` without nodemon
 `npm run startWS` | Websocket server on 3000 port by default
 
-### Requests and responses
+### Responses
 
 personal response
 `reg` - player registration/login
